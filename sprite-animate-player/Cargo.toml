@@ -1,12 +1,9 @@
 [package]
-name = "demo-rpg"
+name = "sprite-animate-player"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[workspace]
-members = [".", "sprite-animate-player"]
 
 [dependencies]
 bevy = { version = "0.8" }
-sprite-animate-player = { path = "./sprite-animate-player" }
