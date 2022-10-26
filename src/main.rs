@@ -1,7 +1,10 @@
 use bevy::prelude::*;
+use player::PlayerPlugin;
 use sprite_animate_player::SpriteAnimatePlugin;
+use state::StatePlugin;
 
 mod player;
+mod state;
 
 fn main() {
     let mut app = App::new();
@@ -10,29 +13,14 @@ fn main() {
     app.add_plugins(DefaultPlugins);
 
     app.add_plugin(SpriteAnimatePlugin);
+
+    app.add_plugin(StatePlugin);
+    app.add_plugin(PlayerPlugin);
     app.add_startup_system(setup);
 
     app.run()
 }
 
-fn setup(
-    mut command: Commands,
-    asset_server: Res<AssetServer>,
-    mut atlas: ResMut<Assets<TextureAtlas>>,
-) {
-    let handle = asset_server.load("player/Player.png");
-
-    let texture_atla = TextureAtlas::from_grid(handle, Vec2::new(64.0, 64.0), 60, 1);
-    let texture_atla_handle = atlas.add(texture_atla);
+fn setup(mut command: Commands) {
     command.spawn_bundle(Camera2dBundle::default());
-
-    let animate_player = player::Player::animate_player();
-
-    command
-        .spawn_bundle(SpriteSheetBundle {
-            texture_atlas: texture_atla_handle,
-            ..Default::default()
-        })
-        .insert(animate_player)
-        .insert(player::Player);
 }

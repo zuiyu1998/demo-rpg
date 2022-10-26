@@ -9,4 +9,15 @@ members = [".", "sprite-animate-player"]
 
 [dependencies]
 bevy = { version = "0.8" }
+
+# 2d sprite 动画
 sprite-animate-player = { path = "./sprite-animate-player" }
+
+# 按键映射
+leafwing-input-manager = "0.6.1"
+
+# 状态管理
+iyes_loopless = { version = "0.7" }
+
+# 资源加载
+bevy_asset_loader = { version = "0.12", features = ["stageless", "2d"] }

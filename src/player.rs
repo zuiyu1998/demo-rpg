@@ -1,5 +1,63 @@
 use bevy::prelude::*;
+use bevy_asset_loader::prelude::*;
+use iyes_loopless::prelude::*;
+use leafwing_input_manager::prelude::*;
 use sprite_animate_player::{FrameAnimate, SpriteAnimatePlayer};
+
+use crate::state::GameState;
+
+pub struct PlayerPlugin;
+
+#[derive(AssetCollection)]
+pub struct PlayerAsset {
+    #[asset(texture_atlas(
+        tile_size_x = 64.,
+        tile_size_y = 64.,
+        columns = 60,
+        rows = 1,
+        padding_x = 0.,
+        padding_y = 0.
+    ))]
+    #[asset(path = "player/Player.png")]
+    pub sprite_handle: Handle<TextureAtlas>,
+}
+
+impl Plugin for PlayerPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugin(InputManagerPlugin::<Action>::default())
+            .add_loading_state(
+                LoadingState::new(GameState::AssetLoading)
+                    .continue_to_state(GameState::InGame)
+                    .with_collection::<PlayerAsset>(),
+            )
+            .add_enter_system(GameState::InGame, spawn_main);
+    }
+}
+
+fn spawn_main(mut commands: Commands, player_asset: Res<PlayerAsset>) {
+    PlayerPlugin::spawn_player(&mut commands, &player_asset);
+}
+
+impl PlayerPlugin {
+    pub fn spawn_player(commands: &mut Commands, player_asset: &PlayerAsset) -> Entity {
+        let animate_player = Player::animate_player();
+
+        commands
+            .spawn_bundle(SpriteSheetBundle {
+                texture_atlas: player_asset.sprite_handle.clone(),
+                ..Default::default()
+            })
+            .insert(animate_player)
+            .insert(Player)
+            .id()
+    }
+}
+
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug)]
+enum Action {
+    Right,
+    Left,
+}
 
 #[derive(Component)]
 pub struct Player;
