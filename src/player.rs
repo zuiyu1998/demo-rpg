@@ -1,10 +1,11 @@
+use bevy::log;
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
 use iyes_loopless::prelude::*;
 use leafwing_input_manager::prelude::*;
 use sprite_animate_player::{FrameAnimate, SpriteAnimatePlayer};
 
-use crate::state::GameState;
+use crate::state::AppState;
 
 pub struct PlayerPlugin;
 
@@ -26,11 +27,37 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(InputManagerPlugin::<Action>::default())
             .add_loading_state(
-                LoadingState::new(GameState::AssetLoading)
-                    .continue_to_state(GameState::InGame)
+                LoadingState::new(AppState::AssetLoading)
+                    .continue_to_state(AppState::InGame)
                     .with_collection::<PlayerAsset>(),
             )
-            .add_enter_system(GameState::InGame, spawn_main);
+            .add_enter_system(AppState::InGame, spawn_main)
+            .add_system_set(
+                ConditionSet::new()
+                    .run_in_state(AppState::InGame)
+                    .with_system(player_control)
+                    .into(),
+            );
+    }
+}
+
+fn player_control(
+    mut query: Query<(&ActionState<Action>, &mut SpriteAnimatePlayer), With<Player>>,
+) {
+    let (action_state, mut player) = query.single_mut();
+
+    if action_state.just_pressed(Action::Left) {
+        player.play("RunLeft");
+    }
+
+    if action_state.just_pressed(Action::Down) {
+        player.play("RunDown");
+    }
+    if action_state.just_pressed(Action::Right) {
+        player.play("RunRight");
+    }
+    if action_state.just_pressed(Action::Up) {
+        player.play("RunUp");
     }
 }
 
@@ -49,6 +76,15 @@ impl PlayerPlugin {
             })
             .insert(animate_player)
             .insert(Player)
+            .insert_bundle(InputManagerBundle::<Action> {
+                action_state: ActionState::default(),
+                input_map: InputMap::new([
+                    (KeyCode::A, Action::Left),
+                    (KeyCode::D, Action::Right),
+                    (KeyCode::W, Action::Up),
+                    (KeyCode::S, Action::Down),
+                ]),
+            })
             .id()
     }
 }
@@ -57,6 +93,8 @@ impl PlayerPlugin {
 enum Action {
     Right,
     Left,
+    Up,
+    Down,
 }
 
 #[derive(Component)]

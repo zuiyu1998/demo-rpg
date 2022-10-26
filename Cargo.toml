@@ -7,6 +7,11 @@ edition = "2021"
 [workspace]
 members = [".", "sprite-animate-player"]
 
+[features]
+default = ["debug"]
+
+debug = []
+
 [dependencies]
 bevy = { version = "0.8" }
 
