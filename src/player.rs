@@ -1,9 +1,9 @@
-use bevy::log;
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
 use iyes_loopless::prelude::*;
 use leafwing_input_manager::prelude::*;
 use sprite_animate_player::{FrameAnimate, SpriteAnimatePlayer};
+use sprite_animate_player::{SpriteAnimateTree, SpriteAnimateVec2};
 
 use crate::state::AppState;
 
@@ -41,23 +41,31 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-fn player_control(
-    mut query: Query<(&ActionState<Action>, &mut SpriteAnimatePlayer), With<Player>>,
-) {
-    let (action_state, mut player) = query.single_mut();
+fn boo_as_f32(bool: bool) -> f32 {
+    if bool {
+        return 1.0;
+    } else {
+        return 0.0;
+    }
+}
 
-    if action_state.just_pressed(Action::Left) {
-        player.play("RunLeft");
-    }
+fn player_control(mut query: Query<(&ActionState<Action>, &mut SpriteAnimateTree), With<Player>>) {
+    let (action_state, mut tree) = query.single_mut();
 
-    if action_state.just_pressed(Action::Down) {
-        player.play("RunDown");
-    }
-    if action_state.just_pressed(Action::Right) {
-        player.play("RunRight");
-    }
-    if action_state.just_pressed(Action::Up) {
-        player.play("RunUp");
+    let mut input = Vec2::ZERO;
+
+    input.x = boo_as_f32(action_state.pressed(Action::Right))
+        - boo_as_f32(action_state.pressed(Action::Left));
+
+    input.y = boo_as_f32(action_state.pressed(Action::Up))
+        - boo_as_f32(action_state.pressed(Action::Down));
+
+    if input == Vec2::ZERO {
+        tree.set_vec2("Idle", input);
+        tree.track("Idle");
+    } else {
+        tree.set_vec2("Run", input);
+        tree.track("Run");
     }
 }
 
@@ -68,6 +76,7 @@ fn spawn_main(mut commands: Commands, player_asset: Res<PlayerAsset>) {
 impl PlayerPlugin {
     pub fn spawn_player(commands: &mut Commands, player_asset: &PlayerAsset) -> Entity {
         let animate_player = Player::animate_player();
+        let animate_tree = Player::animate_tree();
 
         commands
             .spawn_bundle(SpriteSheetBundle {
@@ -75,6 +84,7 @@ impl PlayerPlugin {
                 ..Default::default()
             })
             .insert(animate_player)
+            .insert(animate_tree)
             .insert(Player)
             .insert_bundle(InputManagerBundle::<Action> {
                 action_state: ActionState::default(),
@@ -104,7 +114,7 @@ impl Player {
     pub fn animate_player() -> SpriteAnimatePlayer {
         let mut player = SpriteAnimatePlayer::default();
 
-        player.cul_frame = "RunDown".to_owned();
+        player.cul_animate = "RunDown".to_owned();
 
         player.add(
             "RunRight",
@@ -127,5 +137,22 @@ impl Player {
         );
 
         player
+    }
+
+    pub fn animate_tree() -> SpriteAnimateTree {
+        let mut tree = SpriteAnimateTree::default();
+
+        let mut run_node = SpriteAnimateVec2::default();
+
+        run_node.add_frame_animate("RunLeft", Vec2::new(-1.0, 0.0));
+        run_node.add_frame_animate("RunDown", Vec2::new(0.0, -1.0));
+        run_node.add_frame_animate("RunRight", Vec2::new(1.0, 0.0));
+        run_node.add_frame_animate("RunUp", Vec2::new(0.0, 1.0));
+
+        run_node.set_node_name("Run");
+
+        tree.add_node(run_node);
+
+        tree
     }
 }
