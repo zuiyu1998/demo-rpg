@@ -1,4 +1,5 @@
-use bevy::{log::LogSettings, prelude::*, utils::tracing};
+use bevy::prelude::*;
+use heron::{Gravity, PhysicsPlugin};
 use player::PlayerPlugin;
 use sprite_animate_player::SpriteAnimatePlugin;
 use state::StatePlugin;
@@ -6,19 +7,22 @@ use state::StatePlugin;
 mod player;
 mod state;
 
+#[cfg(feature = "debug")]
+mod debug;
+
 fn main() {
     let mut app = App::new();
 
-    #[cfg(feature = "debug")]
-    app.insert_resource(LogSettings {
-        level: tracing::Level::DEBUG,
-        ..Default::default()
-    });
-
     app.insert_resource(bevy::render::texture::ImageSettings::default_nearest());
+
+    app.insert_resource(Gravity::from(Vec2::new(0.0, -10.0)));
     app.add_plugins(DefaultPlugins);
+    app.add_plugin(PhysicsPlugin::default());
 
     app.add_plugin(SpriteAnimatePlugin);
+
+    #[cfg(feature = "debug")]
+    app.add_plugin(debug::DebugPlugin);
 
     app.add_plugin(StatePlugin);
     app.add_plugin(PlayerPlugin);

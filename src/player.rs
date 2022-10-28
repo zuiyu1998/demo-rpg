@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
+use heron::prelude::*;
 use iyes_loopless::prelude::*;
 use leafwing_input_manager::prelude::*;
 use sprite_animate_player::{FrameAnimate, SpriteAnimatePlayer};
@@ -49,8 +50,12 @@ fn boo_as_f32(bool: bool) -> f32 {
     }
 }
 
-fn player_control(mut query: Query<(&ActionState<Action>, &mut SpriteAnimateTree), With<Player>>) {
-    let (action_state, mut tree) = query.single_mut();
+fn player_control(
+    mut player_state_query: Query<(&ActionState<Action>, &mut Velocity), With<Player>>,
+    mut tree_query: Query<&mut SpriteAnimateTree, With<Player>>,
+) {
+    let (action_state, mut velocity) = player_state_query.single_mut();
+    let mut tree = tree_query.single_mut();
 
     let mut input = Vec2::ZERO;
 
@@ -60,6 +65,8 @@ fn player_control(mut query: Query<(&ActionState<Action>, &mut SpriteAnimateTree
     input.y = boo_as_f32(action_state.pressed(Action::Up))
         - boo_as_f32(action_state.pressed(Action::Down));
 
+    let tmp_velocity = velocity.linear;
+
     if input == Vec2::ZERO {
         tree.set_vec2("Idle", input);
         tree.track("Idle");
@@ -67,6 +74,8 @@ fn player_control(mut query: Query<(&ActionState<Action>, &mut SpriteAnimateTree
         tree.set_vec2("Run", input);
         tree.track("Run");
     }
+
+    *velocity = Velocity::from_linear(tmp_velocity);
 }
 
 fn spawn_main(mut commands: Commands, player_asset: Res<PlayerAsset>) {
@@ -75,17 +84,13 @@ fn spawn_main(mut commands: Commands, player_asset: Res<PlayerAsset>) {
 
 impl PlayerPlugin {
     pub fn spawn_player(commands: &mut Commands, player_asset: &PlayerAsset) -> Entity {
-        let animate_player = Player::animate_player();
-        let animate_tree = Player::animate_tree();
-
         commands
-            .spawn_bundle(SpriteSheetBundle {
-                texture_atlas: player_asset.sprite_handle.clone(),
-                ..Default::default()
-            })
-            .insert(animate_player)
-            .insert(animate_tree)
+            .spawn()
+            .insert_bundle(TransformBundle::default())
+            .insert_bundle(VisibilityBundle::default())
             .insert(Player)
+            .insert(RigidBody::Dynamic)
+            .insert(Velocity::from_linear(Vec3::ZERO))
             .insert_bundle(InputManagerBundle::<Action> {
                 action_state: ActionState::default(),
                 input_map: InputMap::new([
@@ -95,6 +100,35 @@ impl PlayerPlugin {
                     (KeyCode::S, Action::Down),
                 ]),
             })
+            .with_children(|parent| {
+                let animate_player = Player::animate_player();
+                let animate_tree = Player::animate_tree();
+
+                parent
+                    .spawn_bundle(SpriteSheetBundle {
+                        texture_atlas: player_asset.sprite_handle.clone(),
+                        ..Default::default()
+                    })
+                    .insert(Player)
+                    .insert(animate_player)
+                    .insert(animate_tree);
+
+                parent
+                    .spawn()
+                    .insert(CollisionShape::Cuboid {
+                        half_extends: Vec3::new(6.0, 11.5, 0.0),
+                        border_radius: None,
+                    })
+                    .insert_bundle(VisibilityBundle::default())
+                    .insert_bundle(TransformBundle {
+                        local: Transform {
+                            translation: Vec3::new(-1.0, 1.0, 1.0),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    });
+            })
+            .insert(Name::new("Player"))
             .id()
     }
 }
@@ -109,6 +143,9 @@ enum Action {
 
 #[derive(Component)]
 pub struct Player;
+
+#[derive(Component)]
+pub struct Profile {}
 
 impl Player {
     pub fn animate_player() -> SpriteAnimatePlayer {

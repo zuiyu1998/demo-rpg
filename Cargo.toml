@@ -10,7 +10,9 @@ members = [".", "sprite-animate-player"]
 [features]
 default = ["debug"]
 
-debug = []
+debug = ["heron/debug-2d", "heron/default", "bevy-inspector-egui/default"]
+
+prdouct = ["heron/2d", "heron/default"]
 
 [dependencies]
 bevy = { version = "0.8" }
@@ -26,3 +28,9 @@ iyes_loopless = { version = "0.7" }
 
 # 资源加载
 bevy_asset_loader = { version = "0.12", features = ["stageless", "2d"] }
+
+# 物理引擎
+heron = { version = "4", optional = true }
+bevy-inspector-egui = { version = "0.13", optional = true }
+
+ 

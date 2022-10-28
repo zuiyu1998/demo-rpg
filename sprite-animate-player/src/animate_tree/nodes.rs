@@ -1,4 +1,4 @@
-use bevy::prelude::{info, Vec2};
+use bevy::prelude::Vec2;
 
 use super::SpriteAnimateNode;
 
