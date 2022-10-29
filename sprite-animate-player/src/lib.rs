@@ -28,15 +28,29 @@ pub fn animate(
     mut tree_query: Query<(
         &mut TextureAtlasSprite,
         &mut SpriteAnimatePlayer,
-        &SpriteAnimateTree,
+        &mut SpriteAnimateTree,
     )>,
     time: Res<Time>,
 ) {
     let mut iter = vec![];
 
-    for (sprite, mut player, tree) in tree_query.iter_mut() {
-        if let Some(animate_name) = tree.get_frame_animate() {
-            player.play(&animate_name);
+    for (sprite, mut player, mut tree) in tree_query.iter_mut() {
+        let mut is_loop = false;
+        let mut is_end = false;
+
+        if let Some(frame) = player.get_frame() {
+            is_loop = frame.is_loop;
+            is_end = frame.is_end();
+        }
+
+        if !is_loop && is_end {
+            if let Some(next_node) = tree.get_next_node() {
+                tree.track(&next_node);
+            }
+        }
+
+        if let Some(frame_name) = tree.get_frame_animate() {
+            player.play(&frame_name);
         }
 
         iter.push((sprite, player));

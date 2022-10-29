@@ -7,6 +7,7 @@ pub struct SpriteAnimateVec2 {
     node_name: String,
     frame_animates: Vec<(Vec2, String)>,
     cul_control: Vec2,
+    next_node_name: String,
 }
 
 impl SpriteAnimateVec2 {
@@ -27,6 +28,14 @@ impl SpriteAnimateVec2 {
 impl SpriteAnimateNode for SpriteAnimateVec2 {
     fn node_name(&self) -> String {
         self.node_name.to_owned()
+    }
+
+    fn set_next_node_name(&mut self, node: &str) {
+        self.next_node_name = node.to_owned();
+    }
+
+    fn next_node_name(&self) -> String {
+        self.next_node_name.to_owned()
     }
 
     fn set_vec2(&mut self, control: Vec2) {

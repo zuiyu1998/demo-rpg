@@ -3,7 +3,7 @@ use bevy_asset_loader::prelude::*;
 use heron::prelude::*;
 use iyes_loopless::prelude::*;
 use leafwing_input_manager::prelude::*;
-use sprite_animate_player::{FrameAnimate, SpriteAnimatePlayer};
+use sprite_animate_player::{FrameAnimate, SpriteAnimateNode, SpriteAnimatePlayer};
 use sprite_animate_player::{SpriteAnimateTree, SpriteAnimateVec2};
 
 use crate::state::AppState;
@@ -57,22 +57,28 @@ fn player_control(
     let (action_state, mut velocity) = player_state_query.single_mut();
     let mut tree = tree_query.single_mut();
 
-    let mut input = Vec2::ZERO;
+    let mut tmp_velocity = velocity.linear;
 
-    input.x = boo_as_f32(action_state.pressed(Action::Right))
-        - boo_as_f32(action_state.pressed(Action::Left));
+    if action_state.pressed(Action::Attack) {
+        tree.track("Attack");
 
-    input.y = boo_as_f32(action_state.pressed(Action::Up))
-        - boo_as_f32(action_state.pressed(Action::Down));
-
-    let tmp_velocity = velocity.linear;
-
-    if input == Vec2::ZERO {
-        tree.set_vec2("Idle", input);
-        tree.track("Idle");
+        tmp_velocity = Vec3::ZERO;
     } else {
-        tree.set_vec2("Run", input);
-        tree.track("Run");
+        let mut input = Vec2::ZERO;
+
+        input.x = boo_as_f32(action_state.pressed(Action::Right))
+            - boo_as_f32(action_state.pressed(Action::Left));
+
+        input.y = boo_as_f32(action_state.pressed(Action::Up))
+            - boo_as_f32(action_state.pressed(Action::Down));
+
+        if input != Vec2::ZERO {
+            tree.set_vec2("Run", input);
+            tree.set_vec2("Idle", input);
+            tree.set_vec2("Attack", input);
+            tree.track("Run");
+            tmp_velocity = input.normalize().extend(0.0) * 40.0;
+        }
     }
 
     *velocity = Velocity::from_linear(tmp_velocity);
@@ -98,6 +104,7 @@ impl PlayerPlugin {
                     (KeyCode::D, Action::Right),
                     (KeyCode::W, Action::Up),
                     (KeyCode::S, Action::Down),
+                    (KeyCode::Space, Action::Attack),
                 ]),
             })
             .with_children(|parent| {
@@ -126,6 +133,10 @@ impl PlayerPlugin {
                             ..Default::default()
                         },
                         ..Default::default()
+                    })
+                    .insert(PhysicMaterial {
+                        friction: 1.0,
+                        ..Default::default()
                     });
             })
             .insert(Name::new("Player"))
@@ -139,6 +150,7 @@ enum Action {
     Left,
     Up,
     Down,
+    Attack,
 }
 
 #[derive(Component)]
@@ -151,7 +163,7 @@ impl Player {
     pub fn animate_player() -> SpriteAnimatePlayer {
         let mut player = SpriteAnimatePlayer::default();
 
-        player.cul_animate = "RunDown".to_owned();
+        player.cul_animate = "IdleRight".to_owned();
 
         player.add(
             "RunRight",
@@ -159,19 +171,47 @@ impl Player {
         );
 
         player.add(
-            "RunUp",
-            FrameAnimate::new(vec![6, 7, 8, 9, 10, 11], 6, true, 0.1),
+            "AttackRight",
+            FrameAnimate::new(vec![24, 24, 26, 27], 0, false, 0.1),
         );
+
+        player.add("IdleRight", FrameAnimate::new(vec![0], 0, true, 0.1));
+
+        player.add(
+            "RunUp",
+            FrameAnimate::new(vec![6, 7, 8, 9, 10, 11], 0, true, 0.1),
+        );
+
+        player.add(
+            "AttackUp",
+            FrameAnimate::new(vec![28, 29, 30, 31], 0, false, 0.1),
+        );
+
+        player.add("IdleUp", FrameAnimate::new(vec![6], 0, true, 0.1));
 
         player.add(
             "RunLeft",
-            FrameAnimate::new(vec![12, 13, 14, 15, 16, 17], 12, true, 0.1),
+            FrameAnimate::new(vec![12, 13, 14, 15, 16, 17], 0, true, 0.1),
         );
 
         player.add(
-            "RunDown",
-            FrameAnimate::new(vec![18, 19, 20, 21, 22, 23], 18, true, 0.1),
+            "AttackLeft",
+            FrameAnimate::new(vec![32, 33, 34, 35], 0, false, 0.1),
         );
+
+        player.add("IdleLeft", FrameAnimate::new(vec![12], 0, true, 0.1));
+
+        player.add(
+            "RunDown",
+            FrameAnimate::new(vec![18, 19, 20, 21, 22, 23], 0, true, 0.1),
+        );
+
+        player.add(
+            "AttackDown",
+            FrameAnimate::new(vec![36, 37, 38, 39], 0, false, 0.1),
+        );
+
+        player.add("IdleDown", FrameAnimate::new(vec![18], 0, true, 0.1));
 
         player
     }
@@ -187,8 +227,29 @@ impl Player {
         run_node.add_frame_animate("RunUp", Vec2::new(0.0, 1.0));
 
         run_node.set_node_name("Run");
-
         tree.add_node(run_node);
+
+        let mut idle_node = SpriteAnimateVec2::default();
+
+        idle_node.add_frame_animate("IdleLeft", Vec2::new(-1.0, 0.0));
+        idle_node.add_frame_animate("IdleDown", Vec2::new(0.0, -1.0));
+        idle_node.add_frame_animate("IdleRight", Vec2::new(1.0, 0.0));
+        idle_node.add_frame_animate("IdleUp", Vec2::new(0.0, 1.0));
+
+        idle_node.set_node_name("Idle");
+        tree.add_node(idle_node);
+
+        let mut attack_node = SpriteAnimateVec2::default();
+
+        attack_node.add_frame_animate("AttackLeft", Vec2::new(-1.0, 0.0));
+        attack_node.add_frame_animate("AttackDown", Vec2::new(0.0, -1.0));
+        attack_node.add_frame_animate("AttackRight", Vec2::new(1.0, 0.0));
+        attack_node.add_frame_animate("AttackUp", Vec2::new(0.0, 1.0));
+
+        attack_node.set_node_name("Attack");
+        attack_node.set_next_node_name("Idle");
+
+        tree.add_node(attack_node);
 
         tree
     }

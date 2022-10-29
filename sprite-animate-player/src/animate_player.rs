@@ -44,7 +44,15 @@ impl FrameAnimate {
         } else if self.is_loop {
             self.index = index % self.indexs.len();
         } else {
-            self.index = self.indexs.len();
+            self.index = self.indexs.len() - 1;
+        }
+    }
+
+    pub fn is_end(&self) -> bool {
+        if self.index == self.indexs.len() - 1 {
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -64,6 +72,10 @@ impl SpriteAnimatePlayer {
     pub fn get_frame_index(&self) -> Option<usize> {
         self.get(&self.cul_animate)
             .and_then(|frame| Some(frame.index()))
+    }
+
+    pub fn get_frame(&self) -> Option<&FrameAnimate> {
+        self.get(&self.cul_animate).and_then(|frame| Some(frame))
     }
 
     fn reset_animate(&mut self, node: &str) {

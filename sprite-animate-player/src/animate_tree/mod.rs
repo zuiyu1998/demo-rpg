@@ -39,10 +39,22 @@ impl SpriteAnimateTree {
             .get(&self.cul_node)
             .and_then(|node| node.get_frame_animate())
     }
+
+    pub(crate) fn get_next_node(&self) -> Option<String> {
+        self.nodes
+            .get(&self.cul_node)
+            .and_then(|node| Some(node.next_node_name()))
+    }
 }
 
 pub trait SpriteAnimateNode: 'static + Send + Sync {
     fn node_name(&self) -> String;
+
+    fn set_next_node_name(&mut self, node: &str);
+
+    fn next_node_name(&self) -> String {
+        self.node_name()
+    }
 
     fn get_frame_animate(&self) -> Option<String>;
 

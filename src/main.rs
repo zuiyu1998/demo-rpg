@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use heron::{Gravity, PhysicsPlugin};
+use heron::PhysicsPlugin;
 use player::PlayerPlugin;
 use sprite_animate_player::SpriteAnimatePlugin;
 use state::StatePlugin;
@@ -15,7 +15,6 @@ fn main() {
 
     app.insert_resource(bevy::render::texture::ImageSettings::default_nearest());
 
-    app.insert_resource(Gravity::from(Vec2::new(0.0, -10.0)));
     app.add_plugins(DefaultPlugins);
     app.add_plugin(PhysicsPlugin::default());
 
